@@ -1,14 +1,69 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
 import { getGeminiResponse } from '../lib/gemini';
 import { databases, databaseId, collectionId } from '../lib/appwrite';
+import { Query } from 'appwrite';
 
 const ChatInterface: React.FC = () => {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<{ role: string; content: string }[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [history, setHistory] = useState<{ user_message: string; ai_response: string; timestamp: string }[]>([]);
+  const [selectedHistoryItem, setSelectedHistoryItem] = useState<{ user_message: string; ai_response: string; timestamp: string } | null>(null);
+  //const { displayedText: typedUserMessage, isTyping: isTypingUserMessage } = useTypingEffect(selectedHistoryItem?.user_message || '', 30);
+  //const { displayedText: typedAIResponse, isTyping: isTypingAIResponse } = useTypingEffect(selectedHistoryItem?.ai_response || '', 30);
+  
+
+
+  const fetchConversationHistory = async () => {
+    try {
+      const response = await databases.listDocuments(databaseId, collectionId, [
+        Query.orderDesc('timestamp'),
+        Query.limit(100)
+      ]);
+      console.log('Appwrite response:', response);
+      setHistory(response.documents.map(doc => ({
+        user_message: doc.user_message,
+        ai_response: doc.ai_response,
+        timestamp: doc.timestamp
+      })));
+    } catch (error) {
+      console.error('Error fetching conversation history:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchConversationHistory();
+  }, []);
+
+  useEffect(() => {
+    console.log('Current history:', history);
+  }, [history]);
+
+function useTypingEffect(text: string, speed: number = 50) {
+  const [displayedText, setDisplayedText] = useState('');
+  const [isTyping, setIsTyping] = useState(true);
+
+  useEffect(() => {
+    let i = 0;
+    setIsTyping(true);
+
+    const typingInterval = setInterval(() => {
+      if (i < text.length) {
+        setDisplayedText((prev) => prev + text.charAt(i));
+        i++;
+      } else {
+        clearInterval(typingInterval);
+        setIsTyping(false);
+      }
+    }, speed);
+
+    return () => clearInterval(typingInterval);
+  }, [text, speed]);
+
+  return { displayedText, isTyping };
+}
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -40,8 +95,6 @@ const ChatInterface: React.FC = () => {
       handleSend();
     }
   };
-  
-
 
   return (
     <div className="max-w-2xl mx-auto p-4">
@@ -73,21 +126,25 @@ const ChatInterface: React.FC = () => {
         </SheetTrigger>
         <SheetContent>
           <SheetHeader>
-            <SheetTitle>Conversation History</SheetTitle>
-            <SheetDescription>
-              Your past conversations will be displayed here.
-            </SheetDescription>
-          </SheetHeader>
-          <div className="mt-4 max-h-[80vh] overflow-y-auto">
+                    <SheetTitle>Conversation History</SheetTitle>
+                    <SheetDescription>
+                      Your past conversations will be displayed here.
+                    </SheetDescription>
+                  </SheetHeader>
+                  <div className="mt-4 max-h-[80vh] overflow-y-auto">
             {history.map((item, index) => (
-              <div key={index} className="mb-4 p-2 border rounded">
-                <p><strong> User :</strong> {item.user_message}</p>
-                <p><strong>AI:</strong> {item.ai_response}</p>
+              <div 
+                key={index} 
+                className="mb-4 p-2 border rounded cursor-pointer hover:bg-gray-100"
+                onClick={() => setSelectedHistoryItem(item)}
+              >
+                <p className="truncate"><strong>User:</strong> {item.user_message}</p>
+                <p className="truncate"><strong>AI:</strong> {item.ai_response}</p>
                 <p className="text-sm text-gray-500">{new Date(item.timestamp).toLocaleString()}</p>
               </div>
             ))}
-          </div>
-           </SheetContent>
+            </div>
+            </SheetContent>
       </Sheet>
     </div>
   );
