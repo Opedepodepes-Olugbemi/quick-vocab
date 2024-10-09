@@ -10,7 +10,7 @@ const ChatInterface: React.FC = () => {
   const [messages, setMessages] = useState<{ role: string; content: string }[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [history, setHistory] = useState<{ user_message: string; ai_response: string; timestamp: string }[]>([]);
-  const [selectedHistoryItem, setSelectedHistoryItem] = useState<{ user_message: string; ai_response: string; timestamp: string } | null>(null);
+  const [, setSelectedHistoryItem] = useState<{ user_message: string; ai_response: string; timestamp: string } | null>(null);
   //const { displayedText: typedUserMessage, isTyping: isTypingUserMessage } = useTypingEffect(selectedHistoryItem?.user_message || '', 30);
   //const { displayedText: typedAIResponse, isTyping: isTypingAIResponse } = useTypingEffect(selectedHistoryItem?.ai_response || '', 30);
   
@@ -41,29 +41,6 @@ const ChatInterface: React.FC = () => {
     console.log('Current history:', history);
   }, [history]);
 
-function useTypingEffect(text: string, speed: number = 50) {
-  const [displayedText, setDisplayedText] = useState('');
-  const [isTyping, setIsTyping] = useState(true);
-
-  useEffect(() => {
-    let i = 0;
-    setIsTyping(true);
-
-    const typingInterval = setInterval(() => {
-      if (i < text.length) {
-        setDisplayedText((prev) => prev + text.charAt(i));
-        i++;
-      } else {
-        clearInterval(typingInterval);
-        setIsTyping(false);
-      }
-    }, speed);
-
-    return () => clearInterval(typingInterval);
-  }, [text, speed]);
-
-  return { displayedText, isTyping };
-}
 
   const handleSend = async () => {
     if (!input.trim()) return;
