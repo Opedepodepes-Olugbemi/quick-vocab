@@ -11,6 +11,7 @@
     "preview": "vite preview",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist"
+    "clean": "rm -rf dist"
   },
   "dependencies": {
     "@google/generative-ai": "^0.1.3",
