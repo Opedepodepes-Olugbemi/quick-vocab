@@ -1,1 +1,19 @@
-node_modules
+# Node.js dependencies
+node_modules/
+
+# Log files
+*.log
+.env
+
+# Project-specific files
+.DS_Store
+.env
+
+# IDE and editor files
+.vscode/
+.idea/
+
+# Operating system files
+Thumbs.db
+ehthumbs.db
+Desktop.ini

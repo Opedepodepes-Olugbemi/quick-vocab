@@ -8,6 +8,7 @@ const ChatInterface: React.FC = () => {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<{ role: string; content: string }[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [history, setHistory] = useState<{ user_message: string; ai_response: string; timestamp: string }[]>([]);
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -27,12 +28,20 @@ const ChatInterface: React.FC = () => {
       });
     } catch (error) {
       console.error('Error:', error);
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' }]);
-    }
+      }
 
     setIsLoading(false);
     setInput('');
   };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+  
+
 
   return (
     <div className="max-w-2xl mx-auto p-4">
@@ -50,6 +59,7 @@ const ChatInterface: React.FC = () => {
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
           className="flex-grow mr-2 p-2 border rounded"
           placeholder="Type your message..."
         />
@@ -68,8 +78,16 @@ const ChatInterface: React.FC = () => {
               Your past conversations will be displayed here.
             </SheetDescription>
           </SheetHeader>
-          {/* Add conversation history display logic here */}
-        </SheetContent>
+          <div className="mt-4 max-h-[80vh] overflow-y-auto">
+            {history.map((item, index) => (
+              <div key={index} className="mb-4 p-2 border rounded">
+                <p><strong> User :</strong> {item.user_message}</p>
+                <p><strong>AI:</strong> {item.ai_response}</p>
+                <p className="text-sm text-gray-500">{new Date(item.timestamp).toLocaleString()}</p>
+              </div>
+            ))}
+          </div>
+           </SheetContent>
       </Sheet>
     </div>
   );
