@@ -6,7 +6,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { BookOpen, History, Send } from 'lucide-react';
 import { getGeminiResponse } from '../lib/gemini';
-import { databases, historyDatabaseId, historyCollectionId } from '../lib/appwrite';
+import { databases, databaseId, collectionId } from '../lib/appwrite';
 import { Query } from 'appwrite';
 
 const useTypingEffect = (text: string, speed: number = 50) => {
@@ -38,6 +38,7 @@ const useTypingEffect = (text: string, speed: number = 50) => {
 interface Message {
   role: string;
   content: string;
+  vocabularies?: string[];
 }
 
 interface HistoryItem {
@@ -45,6 +46,16 @@ interface HistoryItem {
   messages: Message[];
   timestamp: string;
 }
+
+const formatText = (text: string) => {
+  // Handle bold text
+  text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  
+  // Handle italic text
+  text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+  
+  return text;
+};
 
 export default function QuickVocab() {
   const [input, setInput] = useState('');
@@ -59,7 +70,7 @@ export default function QuickVocab() {
 
   const fetchConversationHistory = async () => {
     try {
-      const response = await databases.listDocuments(historyDatabaseId, historyCollectionId, [
+      const response = await databases.listDocuments(databaseId, collectionId, [
         Query.orderDesc('timestamp'),
         Query.limit(100)
       ]);
@@ -89,7 +100,10 @@ export default function QuickVocab() {
     try {
       const response = await getGeminiResponse(input);
       setThinkingText('');
-      const newAIMessage = { role: 'assistant', content: response };
+
+      const { content, vocabularies } = parseGeminiResponse(response);
+      const formattedContent = formatText(content);
+      const newAIMessage = { role: 'assistant', content: formattedContent, vocabularies };
       const updatedMessages = [...messages, newUserMessage, newAIMessage];
       setMessages(updatedMessages);
 
@@ -99,8 +113,8 @@ export default function QuickVocab() {
 
       // Save to history database
       const result = await databases.createDocument(
-        historyDatabaseId, 
-        historyCollectionId, 
+        databaseId, 
+        collectionId, 
         chatSessionId.current,
         {
           messages: updatedMessages,
@@ -120,6 +134,15 @@ export default function QuickVocab() {
     setIsLoading(false);
     setInput('');
   };
+
+   // Function to parse Gemini response and extract vocabularies
+  const parseGeminiResponse = (response: string) => {
+    const parts = response.split('VOCABULARIES:');
+    const content = parts[0].trim();
+    const vocabularies = parts[1] ? parts[1].trim().split(',').map(v => v.trim()) : [];
+    return { content, vocabularies };
+  };
+
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -147,9 +170,23 @@ export default function QuickVocab() {
           <ScrollArea className="h-[400px] w-full rounded-md border p-4">
             {messages.map((message, index) => (
               <div key={index} className={`mb-4 ${message.role === 'user' ? 'text-right' : 'text-left'}`}>
-                <span className={`inline-block p-2 rounded-lg ${message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
-                  {index === messages.length - 1 && message.role === 'assistant' ? typedLatestMessage : message.content}
-                </span>
+                <span 
+                  className={`inline-block p-2 rounded-lg ${message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}
+                  dangerouslySetInnerHTML={{
+                    __html: index === messages.length - 1 && message.role === 'assistant' 
+                      ? formatText(typedLatestMessage) 
+                      : message.content
+                  }}
+                />
+                {message.vocabularies && message.vocabularies.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {message.vocabularies.map((vocab, i) => (
+                      <span key={i} className="px-2 py-1 bg-secondary text-secondary-foreground text-xs rounded-full">
+                        {vocab}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
             {isTypingThinking && (
