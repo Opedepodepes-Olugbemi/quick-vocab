@@ -4,10 +4,10 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { getGeminiResponse } from '../lib/gemini';
-import { databases, databaseId, collectionId, historyDatabaseId, historyCollectionId } from '../lib/appwrite';
-import { Query } from 'appwrite';
 import { BookOpen, History, Send } from 'lucide-react';
+import { getGeminiResponse } from '../lib/gemini';
+import { databases, historyDatabaseId, historyCollectionId } from '../lib/appwrite';
+import { Query } from 'appwrite';
 
 const useTypingEffect = (text: string, speed: number = 50) => {
   const [displayedText, setDisplayedText] = useState('');
@@ -35,14 +35,23 @@ const useTypingEffect = (text: string, speed: number = 50) => {
   return { displayedText, isTyping };
 };
 
+interface Message {
+  role: string;
+  content: string;
+}
+
+interface HistoryItem {
+  id: string;
+  messages: Message[];
+  timestamp: string;
+}
+
 export default function QuickVocab() {
   const [input, setInput] = useState('');
-  const [messages, setMessages] = useState<{ role: string; content: string }[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [history, setHistory] = useState<{
-    timestamp: string | number | Date; id: string; messages: { role: string; content: string }[] 
-}[]>([]);
-  const [selectedHistoryItem, setSelectedHistoryItem] = useState<{ id: string; messages: { role: string; content: string }[] } | null>(null);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [selectedHistoryItem, setSelectedHistoryItem] = useState<HistoryItem | null>(null);
   const [thinkingText, setThinkingText] = useState('');
   const { displayedText: typedThinkingText, isTyping: isTypingThinking } = useTypingEffect(thinkingText, 30);
   const { displayedText: typedLatestMessage, isTyping: isTypingLatestMessage } = useTypingEffect(messages[messages.length - 1]?.content || '', 30);
@@ -54,6 +63,7 @@ export default function QuickVocab() {
         Query.orderDesc('timestamp'),
         Query.limit(100)
       ]);
+      console.log('Fetched history:', response);
       setHistory(response.documents.map(doc => ({
         id: doc.$id,
         messages: doc.messages,
@@ -80,23 +90,25 @@ export default function QuickVocab() {
       const response = await getGeminiResponse(input);
       setThinkingText('');
       const newAIMessage = { role: 'assistant', content: response };
-      setMessages(prev => [...prev, newAIMessage]);
+      const updatedMessages = [...messages, newUserMessage, newAIMessage];
+      setMessages(updatedMessages);
 
       if (!chatSessionId.current) {
-        chatSessionId.current = 'unique()';
+        chatSessionId.current = 'unique_' + Date.now(); // Generate a unique ID
       }
 
-      // Save to main database
-      await databases.createDocument(databaseId, collectionId, chatSessionId.current, {
-        messages: [...messages, newUserMessage, newAIMessage],
-        timestamp: new Date().toISOString(),
-      });
-
       // Save to history database
-      await databases.createDocument(historyDatabaseId, historyCollectionId, chatSessionId.current, {
-        messages: [...messages, newUserMessage, newAIMessage],
-        timestamp: new Date().toISOString(),
-      });
+      const result = await databases.createDocument(
+        historyDatabaseId, 
+        historyCollectionId, 
+        chatSessionId.current,
+        {
+          messages: updatedMessages,
+          timestamp: new Date().toISOString(),
+        }
+      );
+
+      console.log('Saved to history database:', result);
 
       // Update history after successful save
       fetchConversationHistory();
