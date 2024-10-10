@@ -54,7 +54,7 @@ export default function QuickVocab() {
   const [selectedHistoryItem, setSelectedHistoryItem] = useState<HistoryItem | null>(null);
   const [thinkingText, setThinkingText] = useState('');
   const { displayedText: typedThinkingText, isTyping: isTypingThinking } = useTypingEffect(thinkingText, 30);
-  const { displayedText: typedLatestMessage, isTyping: isTypingLatestMessage } = useTypingEffect(messages[messages.length - 1]?.content || '', 30);
+  const { displayedText: typedLatestMessage } = useTypingEffect(messages[messages.length - 1]?.content || '', 30);
   const chatSessionId = useRef<string | null>(null);
 
   const fetchConversationHistory = async () => {
