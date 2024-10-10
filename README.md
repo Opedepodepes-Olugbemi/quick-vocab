@@ -12,6 +12,8 @@ A vocabulary building application designed to help users learn new words and the
 
 * [quick-vocab](https://opedepodepes-olugbemi.github.io/quick-vocab/)
 
-## Any issues  or bugs? 
-1.  Clone the repository: `git clone https://github.com/Opedepodepes-Olugbemi/quick-vocab.git`
+## Any issues  or bugs?
+
+1.  Fork the repository: `git clone https://github.com/Opedepodepes-Olugbemi/quick-vocab.git`
 2.  Install dependencies: `npm install
+3.  Create a pull request
