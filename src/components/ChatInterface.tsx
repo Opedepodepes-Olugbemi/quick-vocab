@@ -53,6 +53,9 @@ const formatText = (text: string) => {
   
   // Handle italic text
   text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+  // Handle line break
+  text = text.replace(/\n/g, '<br>');
   
   return text;
 };
@@ -171,7 +174,7 @@ export default function QuickVocab() {
             {messages.map((message, index) => (
               <div key={index} className={`mb-4 ${message.role === 'user' ? 'text-right' : 'text-left'}`}>
                 <span 
-                  className={`inline-block p-2 rounded-lg ${message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}
+                  className={`inline-block p-2 rounded-lg ${message.role === 'user' ? 'bg-primary text-primary-foreground text-left' : 'bg-muted'}`}
                   dangerouslySetInnerHTML={{
                     __html: index === messages.length - 1 && message.role === 'assistant' 
                       ? formatText(typedLatestMessage) 
