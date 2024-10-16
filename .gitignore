@@ -1,13 +1,10 @@
-# Node.js dependencies
-node_modules/
-
 # Log files
-*.log
+*.Log
 .env
 
 # Project-specific files
 .DS_Store
-.env
+node_modules/
 
 # IDE and editor files
 .vscode/
