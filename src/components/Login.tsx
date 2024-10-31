@@ -46,9 +46,13 @@ export default function Login({ onLogin, onGoogleLogin, onSwitchToSignup }: Logi
 
     try {
 
+      console.log('Attempting login for:', email);
+
       await onLogin(email, password);
 
     } catch (err: any) {
+
+      console.error('Login error:', err);
 
       setError(err.message || 'Login failed');
 
@@ -100,7 +104,13 @@ export default function Login({ onLogin, onGoogleLogin, onSwitchToSignup }: Logi
 
                 value={email}
 
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+
+                  setEmail(e.target.value);
+
+                  setError(null);
+
+                }}
 
                 required
 
@@ -118,7 +128,13 @@ export default function Login({ onLogin, onGoogleLogin, onSwitchToSignup }: Logi
 
                 value={password}
 
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+
+                  setPassword(e.target.value);
+
+                  setError(null);
+
+                }}
 
                 required
 
