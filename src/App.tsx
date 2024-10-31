@@ -46,6 +46,14 @@ import { ID } from 'appwrite';
 
 
 
+import LanguageSelection from './components/LanguageSelection';
+
+
+
+
+
+
+
 
 
 
@@ -87,6 +95,22 @@ export default function App() {
 
 
   const [userInfo, setUserInfo] = useState<any>(null);
+
+
+
+
+
+
+
+  const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
+
+
+
+
+
+
+
+  const [showOnboarding, setShowOnboarding] = useState(true);
 
 
 
@@ -175,6 +199,46 @@ export default function App() {
 
 
       setIsLoggedIn(true);
+
+
+
+
+
+
+
+      const savedLanguage = localStorage.getItem('preferredLanguage');
+
+
+
+
+
+
+
+      if (savedLanguage) {
+
+
+
+
+
+
+
+        setSelectedLanguage(savedLanguage);
+
+
+
+
+
+
+
+        setShowOnboarding(false);
+
+
+
+
+
+
+
+      }
 
 
 
@@ -294,6 +358,62 @@ export default function App() {
 
 
 
+      const savedLanguage = localStorage.getItem('preferredLanguage');
+
+
+
+
+
+
+
+      if (savedLanguage) {
+
+
+
+
+
+
+
+        setSelectedLanguage(savedLanguage);
+
+
+
+
+
+
+
+        setShowOnboarding(false);
+
+
+
+
+
+
+
+      } else {
+
+
+
+
+
+
+
+        setShowOnboarding(true);
+
+
+
+
+
+
+
+      }
+
+
+
+
+
+
+
     } catch (error: any) {
 
 
@@ -367,6 +487,14 @@ export default function App() {
 
 
       await handleLogin(email, password);
+
+
+
+
+
+
+
+      setShowOnboarding(true);
 
 
 
@@ -511,6 +639,96 @@ export default function App() {
 
 
   };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  const handleLanguageSelect = (language: string) => {
+
+
+
+
+
+
+
+    setSelectedLanguage(language);
+
+
+
+
+
+
+
+    setShowOnboarding(false);
+
+
+
+
+
+
+
+    localStorage.setItem('preferredLanguage', language);
+
+
+
+
+
+
+
+  };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  const handleLanguageChange = (language: string) => {
+
+
+
+
+
+
+
+    setSelectedLanguage(language);
+
+
+
+
+
+
+
+    localStorage.setItem('preferredLanguage', language);
+
+
+
+
+
+
+
+  };
+
 
 
 
@@ -702,7 +920,119 @@ export default function App() {
 
 
 
-  return <QuickVocab userInfo={userInfo} />;
+  if (isLoggedIn && showOnboarding) {
+
+
+
+
+
+
+
+    return <LanguageSelection onLanguageSelect={handleLanguageSelect} />;
+
+
+
+
+
+
+
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  if (isLoggedIn) {
+
+
+
+
+
+
+
+    return (
+
+
+
+
+
+
+
+      <QuickVocab 
+
+
+
+
+
+
+
+        userInfo={userInfo} 
+
+
+
+
+
+
+
+        selectedLanguage={selectedLanguage} 
+
+
+
+
+
+
+
+        onLanguageChange={handleLanguageChange}
+
+
+
+
+
+
+
+      />
+
+
+
+
+
+
+
+    );
+
+
+
+
+
+
+
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  return <div>Something went wrong...</div>;
 
 
 

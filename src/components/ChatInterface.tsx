@@ -4,13 +4,14 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { BookOpen, History, Send, LogOut } from 'lucide-react';
+import { BookOpen, History, Send, LogOut, Globe, Languages } from 'lucide-react';
 import { getGeminiResponse } from '../lib/gemini';
 import { databases, databaseId, account, getUserCollection } from '../lib/appwrite';
 import { Query } from 'appwrite';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ID } from 'appwrite';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const useTypingEffect = (text: string, speed: number = 50) => {
   const [displayedText, setDisplayedText] = useState('');
@@ -94,9 +95,11 @@ interface Props {
       avatar?: string;
     };
   };
+  selectedLanguage: string | null;
+  onLanguageChange: (language: string) => void;
 }
 
-export default function QuickVocab({ userInfo }: Props) {
+export default function QuickVocab({ userInfo, selectedLanguage, onLanguageChange }: Props) {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -109,6 +112,8 @@ export default function QuickVocab({ userInfo }: Props) {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [userCollectionId, setUserCollectionId] = useState<string | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [newLanguage, setNewLanguage] = useState('');
 
   useEffect(() => {
     const setupUserCollection = async () => {
@@ -216,7 +221,7 @@ export default function QuickVocab({ userInfo }: Props) {
   }, [isSheetOpen]);
 
   const handleSend = async () => {
-    if (!input.trim() || !userInfo?.$id) return;
+    if (!input.trim() || !userInfo?.$id || !selectedLanguage) return;
 
     setIsLoading(true);
     const newUserMessage = { role: 'user', content: input };
@@ -224,7 +229,7 @@ export default function QuickVocab({ userInfo }: Props) {
     setThinkingText('Thinking...');
 
     try {
-      const response = await getGeminiResponse(input);
+      const response = await getGeminiResponse(input, selectedLanguage);
       setThinkingText('');
 
       const { content, vocabularies } = parseGeminiResponse(response);
@@ -282,6 +287,26 @@ export default function QuickVocab({ userInfo }: Props) {
     chatSessionId.current = null;
   };
 
+  const getLanguageDisplay = (lang: string) => {
+    const languages: { [key: string]: { name: string, flag: string } } = {
+      english: { name: 'English', flag: '🇬🇧' },
+      french: { name: 'French', flag: '🇫🇷' },
+      spanish: { name: 'Spanish', flag: '🇪🇸' }
+    };
+    return languages[lang] || { 
+      name: lang.charAt(0).toUpperCase() + lang.slice(1), 
+      flag: '' // Remove globe emoji for custom languages
+    };
+  };
+
+  const handleCustomLanguageSubmit = () => {
+    if (newLanguage.trim()) {
+      onLanguageChange(newLanguage.toLowerCase());
+      setIsDialogOpen(false);
+      setNewLanguage('');
+    }
+  };
+
   return (
     <div className="container mx-auto p-4 max-w-4xl">
       <Card className="w-full">
@@ -291,32 +316,67 @@ export default function QuickVocab({ userInfo }: Props) {
               <BookOpen className="h-6 w-6" />
               Quick Vocab
             </CardTitle>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                  <Avatar>
-                    {userInfo?.prefs?.avatar ? (
-                      <AvatarImage src={userInfo.prefs.avatar} alt={userInfo.name} />
-                    ) : (
-                      <AvatarFallback>
-                        {getInitials(userInfo?.name || 'User')}
-                      </AvatarFallback>
+            <div className="flex items-center gap-4">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="flex items-center gap-2">
+                    <Globe className="h-4 w-4" />
+                    {selectedLanguage && (
+                      <>
+                        {getLanguageDisplay(selectedLanguage).flag && (
+                          <span>{getLanguageDisplay(selectedLanguage).flag}</span>
+                        )}
+                        <span>{getLanguageDisplay(selectedLanguage).name}</span>
+                      </>
                     )}
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem>
-                  <span className="font-medium">{userInfo?.name}</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleLogout}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => onLanguageChange('english')}>
+                    🇬🇧 English
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onLanguageChange('french')}>
+                    🇫🇷 French
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onLanguageChange('spanish')}>
+                    🇪🇸 Spanish
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setIsDialogOpen(true)}>
+                    <Languages className="h-4 w-4 mr-2" />
+                    Other Language
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                    <Avatar>
+                      {userInfo?.prefs?.avatar ? (
+                        <AvatarImage src={userInfo.prefs.avatar} alt={userInfo.name} />
+                      ) : (
+                        <AvatarFallback>
+                          {getInitials(userInfo?.name || 'User')}
+                        </AvatarFallback>
+                      )}
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem>
+                    <span className="font-medium">{userInfo?.name}</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleLogout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
-          <CardDescription>Expand your vocabulary with AI-powered learning</CardDescription>
+          <CardDescription>
+            Learning {getLanguageDisplay(selectedLanguage || 'english').name} vocabulary with AI
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <ScrollArea className="h-[400px] w-full rounded-md border p-4">
@@ -451,6 +511,37 @@ export default function QuickVocab({ userInfo }: Props) {
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Custom Language</DialogTitle>
+            <DialogDescription>
+              Enter the name of the language you want to learn
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <Input
+              placeholder="Enter language name..."
+              value={newLanguage}
+              onChange={(e) => setNewLanguage(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleCustomLanguageSubmit();
+                }
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCustomLanguageSubmit}>
+              Add Language
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
